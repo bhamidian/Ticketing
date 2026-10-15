@@ -1,0 +1,15 @@
+C:\Users\Abolfazl\Documents\Programming\Backend-Projects\Ticketing\Ticketing\src\02-Application\bin\Release\net10.0\Ticketing.Application.deps.json
+C:\Users\Abolfazl\Documents\Programming\Backend-Projects\Ticketing\Ticketing\src\02-Application\bin\Release\net10.0\Ticketing.Application.dll
+C:\Users\Abolfazl\Documents\Programming\Backend-Projects\Ticketing\Ticketing\src\02-Application\bin\Release\net10.0\Ticketing.Application.pdb
+C:\Users\Abolfazl\Documents\Programming\Backend-Projects\Ticketing\Ticketing\src\02-Application\bin\Release\net10.0\Ticketing.Domain.dll
+C:\Users\Abolfazl\Documents\Programming\Backend-Projects\Ticketing\Ticketing\src\02-Application\bin\Release\net10.0\Ticketing.Domain.pdb
+C:\Users\Abolfazl\Documents\Programming\Backend-Projects\Ticketing\Ticketing\src\02-Application\obj\Release\net10.0\Ticketing.Application.csproj.AssemblyReference.cache
+C:\Users\Abolfazl\Documents\Programming\Backend-Projects\Ticketing\Ticketing\src\02-Application\obj\Release\net10.0\Ticketing.Application.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Abolfazl\Documents\Programming\Backend-Projects\Ticketing\Ticketing\src\02-Application\obj\Release\net10.0\Ticketing.Application.AssemblyInfoInputs.cache
+C:\Users\Abolfazl\Documents\Programming\Backend-Projects\Ticketing\Ticketing\src\02-Application\obj\Release\net10.0\Ticketing.Application.AssemblyInfo.cs
+C:\Users\Abolfazl\Documents\Programming\Backend-Projects\Ticketing\Ticketing\src\02-Application\obj\Release\net10.0\Ticketing.Application.csproj.CoreCompileInputs.cache
+C:\Users\Abolfazl\Documents\Programming\Backend-Projects\Ticketing\Ticketing\src\02-Application\obj\Release\net10.0\Ticketin.DD1412B3.Up2Date
+C:\Users\Abolfazl\Documents\Programming\Backend-Projects\Ticketing\Ticketing\src\02-Application\obj\Release\net10.0\Ticketing.Application.dll
+C:\Users\Abolfazl\Documents\Programming\Backend-Projects\Ticketing\Ticketing\src\02-Application\obj\Release\net10.0\refint\Ticketing.Application.dll
+C:\Users\Abolfazl\Documents\Programming\Backend-Projects\Ticketing\Ticketing\src\02-Application\obj\Release\net10.0\Ticketing.Application.pdb
+C:\Users\Abolfazl\Documents\Programming\Backend-Projects\Ticketing\Ticketing\src\02-Application\obj\Release\net10.0\ref\Ticketing.Application.dll
