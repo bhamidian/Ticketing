@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "dgSpecHash": "GV5hguYj1L0=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\Abolfazl\\Documents\\Programming\\Backend-Projects\\Ticketing\\Ticketing\\Ticketing.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\Abolfazl\\.nuget\\packages\\system.formats.asn1\\11.0.0-rc.2.26504.105\\system.formats.asn1.11.0.0-rc.2.26504.105.nupkg.sha512",
+    "C:\\Users\\Abolfazl\\.nuget\\packages\\system.security.cryptography.pkcs\\11.0.0-rc.2.26504.105\\system.security.cryptography.pkcs.11.0.0-rc.2.26504.105.nupkg.sha512",
+    "C:\\Users\\Abolfazl\\.nuget\\packages\\system.security.cryptography.xml\\11.0.0-rc.2.26504.105\\system.security.cryptography.xml.11.0.0-rc.2.26504.105.nupkg.sha512"
+  ],
+  "logs": []
+}
