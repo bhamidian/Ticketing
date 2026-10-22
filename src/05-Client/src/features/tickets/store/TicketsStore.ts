@@ -70,14 +70,6 @@ class TicketsStoreClass {
       this.set({ loading: false });
     }
   }
-  async claim(id: string) {
-    const ticket = await ticketsApi.claim(id);
-    this.set({
-      selected: ticket,
-      items: this.state.items.filter((item) => item.id !== id),
-    });
-    return ticket;
-  }
   async create(request: CreateTicketRequest, image?: File | null) {
     const ticket = await ticketsApi.create(request, image);
     this.set({ selected: ticket, items: [ticket, ...this.state.items] });
@@ -102,6 +94,18 @@ class TicketsStoreClass {
       selected: ticket,
       items: this.state.items.map((item) => (item.id === id ? ticket : item)),
     });
+    return ticket;
+  }
+  async confirmMessage(ticketId: string, messageId: string) {
+    await ticketsApi.confirmMessage(messageId);
+    const ticket = await ticketsApi.get(ticketId);
+    this.set({ selected: ticket, items: this.state.items.map(item => item.id === ticketId ? ticket : item) });
+    return ticket;
+  }
+  async updateAgentMessage(ticketId: string, messageId: string, message: string) {
+    await ticketsApi.updateAgentMessage(ticketId, messageId, message);
+    const ticket = await ticketsApi.get(ticketId);
+    this.set({ selected: ticket, items: this.state.items.map(item => item.id === ticketId ? ticket : item) });
     return ticket;
   }
 }

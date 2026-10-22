@@ -11,12 +11,16 @@ internal static class TicketAccess
         Guid userId,
         bool isStaff,
         INormalUserRepository normalUsers,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool isAdmin = false)
     {
+        if (isAdmin)
+            return null;
+
         if (isStaff)
         {
-            if (ticket.AssignedAgentId is not null && ticket.AssignedAgentId != userId)
-                return ApplicationErrors.Forbidden("این تیکت به عامل دیگری واگذار شده است.");
+            if (ticket.AssignedAgentId != userId)
+                return ApplicationErrors.Forbidden("فقط تیکت‌های واگذارشده به شما قابل مشاهده هستند.");
 
             return null;
         }

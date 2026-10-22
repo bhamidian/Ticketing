@@ -18,9 +18,12 @@ public sealed class GetTicketDetailsQueryHandler(
             return Result<TicketDetailsDto>.Failure(ApplicationErrors.TicketNotFound(request.TicketId));
 
         var accessError = await TicketAccess.GetAccessErrorAsync(
-            ticket, request.UserId, request.IsStaff, normalUsers, cancellationToken);
+            ticket, request.UserId, request.IsStaff, normalUsers, cancellationToken, request.IsAdmin);
         if (accessError is not null)
             return Result<TicketDetailsDto>.Failure(accessError);
+
+        if (!request.IsStaff && !request.IsAdmin)
+            ticket.TicketMessages.RemoveAll(message => message.IsConfirmed != true);
 
         return Result<TicketDetailsDto>.Success(ApplicationMapper.ToTicketDetailsDto(ticket));
     }

@@ -26,6 +26,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\01-Domain\Ticketing.Domain\Ticketing.Domain.csproj" />
     <ProjectReference Include="..\..\02-Application\Ticketing.Application.csproj" />
+    <ProjectReference Include="..\..\00-Framework\Ticketing.Framework\Ticketing.Framework.csproj" />
   </ItemGroup>
 
 </Project>

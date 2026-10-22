@@ -3,9 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using Ticketing.Infrastructure.FileService.Contracts;
+using Ticketing.Application.Contracts.Services;
 
 namespace Ticketing.Infrastructure.FileService.Services
 {
@@ -37,11 +36,15 @@ namespace Ticketing.Infrastructure.FileService.Services
                 );
         }
 
-        public string? Upload(IFormFile file, string folder)
+        public async Task<string?> UploadAsync(
+            Stream content,
+            string fileName,
+            string folder,
+            CancellationToken cancellationToken = default)
         {
-            if (file == null || file.Length == 0)
+            if (content is null || !content.CanRead)
             {
-                logger.LogWarning("File upload skipped because the uploaded file was empty.");
+                logger.LogWarning("File upload skipped because the content stream was not readable.");
                 return null;
             }
 
@@ -49,21 +52,31 @@ namespace Ticketing.Infrastructure.FileService.Services
             if (!Directory.Exists(uploadsFolder))
                 Directory.CreateDirectory(uploadsFolder);
 
-            var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(file.FileName);
+            var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(fileName);
             var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-            using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                file.CopyTo(stream);
-            }
+            await using (var output = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None))
+                await content.CopyToAsync(output, cancellationToken);
 
             var webPath = $"/Teams/{folder}/{uniqueFileName}";
             logger.LogInformation(
                 "File uploaded. {Folder} {FileName} {SizeBytes}",
                 folder,
                 uniqueFileName,
-                file.Length
+                new FileInfo(filePath).Length
             );
             return webPath;
+        }
+
+        public Stream? OpenRead(string fileName)
+        {
+            if (string.IsNullOrWhiteSpace(fileName))
+                return null;
+
+            var fullPath = ResolveWebRootPath(fileName);
+            if (!File.Exists(fullPath))
+                return null;
+
+            return new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read);
         }
 
         private string ResolveWebRootPath(string relativePath)

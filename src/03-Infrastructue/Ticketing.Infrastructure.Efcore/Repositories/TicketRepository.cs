@@ -23,6 +23,8 @@ public sealed class TicketRepository : Repository<Ticket>, ITicketRepository
             .Include(ticket => ticket.AssignedAgent)
             .Include(ticket => ticket.NormalUser)
                 .ThenInclude(user => user.AppUser)
+            .Include(ticket => ticket.NormalUser)
+                .ThenInclude(user => user.Department)
             .Include(ticket => ticket.TicketMessages)
                 .ThenInclude(message => message.Sender)
             .SingleOrDefaultAsync(ticket => ticket.Id == id, cancellationToken);
@@ -66,6 +68,8 @@ public sealed class TicketRepository : Repository<Ticket>, ITicketRepository
             .Include(ticket => ticket.AssignedAgent)
             .Include(ticket => ticket.NormalUser)
                 .ThenInclude(user => user.AppUser)
+            .Include(ticket => ticket.NormalUser)
+                .ThenInclude(user => user.Department)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);
@@ -95,4 +99,6 @@ public sealed class TicketRepository : Repository<Ticket>, ITicketRepository
             && ticket.AssignedAgentId == agentUserId
             && ticket.TicketLifeCycle != TicketLifeCycleEnum.CLOSED, cancellationToken);
     }
+
+
 }

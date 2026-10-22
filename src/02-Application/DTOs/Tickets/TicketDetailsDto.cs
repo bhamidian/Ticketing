@@ -15,4 +15,5 @@ public sealed record TicketDetailsDto(
     DateTime UpdatedAtUtc,
     DateTime? ClosedAtUtc,
     Guid? ClosedById,
-    IReadOnlyList<TicketMessageDto> Messages);
+    IReadOnlyList<TicketMessageDto> Messages,
+    string? DepartmentName);
