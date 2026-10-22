@@ -19,14 +19,15 @@ public sealed class DatabaseSeeder(
         var seedUsers = configuration.GetSection("SeedUsers:Accounts").GetChildren().ToArray();
         var userCount = seedUsers.Count(section => string.Equals(section["Role"], "User", StringComparison.OrdinalIgnoreCase));
         var agentCount = seedUsers.Count(section => string.Equals(section["Role"], "Agent", StringComparison.OrdinalIgnoreCase));
+        var adminCount = seedUsers.Count(section => string.Equals(section["Role"], "Admin", StringComparison.OrdinalIgnoreCase));
 
-        if (userCount != 3 || agentCount != 3)
-            throw new InvalidOperationException("Runtime seeding requires exactly three User accounts and three Agent accounts.");
+        if (userCount != 3 || agentCount != 3 || adminCount != 3)
+            throw new InvalidOperationException("Runtime seeding requires exactly three User accounts, three Agent accounts, and three Admin accounts.");
 
         if (!await dbContext.Database.CanConnectAsync(cancellationToken))
             throw new InvalidOperationException("Cannot connect to the configured database. Apply the database migrations before runtime seeding.");
 
-        foreach (var roleName in new[] { "User", "Agent" })
+        foreach (var roleName in new[] { "User", "Agent", "Admin" })
         {
             if (await roleManager.RoleExistsAsync(roleName))
                 continue;
@@ -36,6 +37,8 @@ public sealed class DatabaseSeeder(
                 Id = Guid.NewGuid()
             }), $"creating role '{roleName}'");
         }
+
+        var supportDepartment = await GetOrCreateSupportDepartmentAsync(cancellationToken);
 
         foreach (var section in seedUsers)
         {
@@ -72,6 +75,7 @@ public sealed class DatabaseSeeder(
                 {
                     Id = Guid.NewGuid(),
                     AppUserId = account.Id,
+                    DepartmentId = supportDepartment.Id,
                     CreatedAt = now,
                     UpdatedAt = now,
                     CreatedById = account.Id,
@@ -80,14 +84,30 @@ public sealed class DatabaseSeeder(
                 await dbContext.SaveChangesAsync(cancellationToken);
             }
 
+            if (roleName.Equals("User", StringComparison.OrdinalIgnoreCase))
+            {
+                var profile = await dbContext.NormalUsers.SingleAsync(item => item.AppUserId == account.Id, cancellationToken);
+                if (profile.DepartmentId != supportDepartment.Id)
+                {
+                    profile.DepartmentId = supportDepartment.Id;
+                    profile.UpdatedAt = DateTime.UtcNow;
+                    profile.UpdatedById = account.Id;
+                    await dbContext.SaveChangesAsync(cancellationToken);
+                }
+            }
+
             if (roleName.Equals("Agent", StringComparison.OrdinalIgnoreCase) &&
                 !await dbContext.Agents.AnyAsync(profile => profile.AppUserId == account.Id, cancellationToken))
                 await EnsureAgentProfileAsync(account, cancellationToken);
+
+            if (roleName.Equals("Admin", StringComparison.OrdinalIgnoreCase) &&
+                !await dbContext.Admins.AnyAsync(profile => profile.AppUserId == account.Id, cancellationToken))
+                await EnsureAdminProfileAsync(account, cancellationToken);
         }
 
         await SeedPaginationTicketsAsync(seedUsers, cancellationToken);
 
-        logger.LogInformation("Runtime identity seeding completed for six configured accounts");
+        logger.LogInformation("Runtime identity seeding completed for {Count} configured accounts", seedUsers.Length);
     }
 
     private async Task SeedPaginationTicketsAsync(IConfigurationSection[] seedUsers, CancellationToken cancellationToken)
@@ -183,6 +203,48 @@ public sealed class DatabaseSeeder(
             UpdatedById = account.Id
         });
         await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task EnsureAdminProfileAsync(AppUser account, CancellationToken cancellationToken)
+    {
+        var now = DateTime.UtcNow;
+        dbContext.Admins.Add(new Admin
+        {
+            Id = Guid.NewGuid(),
+            AppUserId = account.Id,
+            CreatedAt = now,
+            UpdatedAt = now,
+            CreatedById = account.Id,
+            UpdatedById = account.Id
+        });
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task<Department> GetOrCreateSupportDepartmentAsync(CancellationToken cancellationToken)
+    {
+        var department = await dbContext.Departments.SingleOrDefaultAsync(item => item.Name == "پشتیبانی", cancellationToken);
+        if (department is null)
+        {
+            var auditUserId = await dbContext.Users
+                .Where(user => user.NormalUser != null)
+                .Select(user => user.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (auditUserId == Guid.Empty)
+                auditUserId = await dbContext.Users.Select(user => user.Id).FirstAsync(cancellationToken);
+            var now = DateTime.UtcNow;
+            department = new Department
+            {
+                Id = Guid.NewGuid(),
+                Name = "پشتیبانی",
+                CreatedAt = now,
+                UpdatedAt = now,
+                CreatedById = auditUserId,
+                UpdatedById = auditUserId
+            };
+            dbContext.Departments.Add(department);
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        return department;
     }
 
     private static void EnsureSucceeded(IdentityResult result, string operation)

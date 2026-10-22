@@ -20,7 +20,6 @@ export function TicketsPage({
   const [priority, setPriority] = useState<TicketPriority | "">("");
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
   const [page, setPage] = useState(1);
-  const [agentTab, setAgentTab] = useState<"available" | "assigned">("available");
   useEffect(() => {
     void ticketsStore.load({
       status: status === "" ? undefined : status,
@@ -28,10 +27,10 @@ export function TicketsPage({
       page,
       pageSize,
       sortOrder,
-      assignedOnly: isAgent && agentTab === "assigned",
-      unassignedOnly: isAgent && agentTab === "available",
+      assignedOnly: isAgent,
+      unassignedOnly: false,
     });
-  }, [status, priority, page, sortOrder, agentTab, isAgent]);
+  }, [status, priority, page, sortOrder, isAgent]);
   const visibleItems = items;
   return (
     <section className="page-wrap">
@@ -47,26 +46,6 @@ export function TicketsPage({
         </div>
         {!isAgent && <Button onClick={onNew}>＋ ثبت تیکت جدید</Button>}
       </header>
-      {isAgent && (
-        <div className="agent-ticket-tabs" role="tablist" aria-label="دسته‌بندی درخواست‌ها">
-          <button
-            className={`agent-ticket-tab ${agentTab === "available" ? "active" : ""}`}
-            role="tab"
-            aria-selected={agentTab === "available"}
-            onClick={() => { setStatus(""); setPage(1); setAgentTab("available"); }}
-          >
-            درخواست‌های منتشرشده
-          </button>
-          <button
-            className={`agent-ticket-tab ${agentTab === "assigned" ? "active" : ""}`}
-            role="tab"
-            aria-selected={agentTab === "assigned"}
-            onClick={() => { setPage(1); setAgentTab("assigned"); }}
-          >
-            درخواست‌های گرفته‌شده
-          </button>
-        </div>
-      )}
       <TicketsToolbar
         status={status}
         priority={priority}
@@ -74,12 +53,12 @@ export function TicketsPage({
         onStatus={(value) => { setStatus(value); setPage(1); }}
         onPriority={(value) => { setPriority(value); setPage(1); }}
         onSortOrder={(value) => { setSortOrder(value); setPage(1); }}
-        showStatus={!isAgent || agentTab !== "available"}
+        showStatus
       />
       {error && (
         <div className="alert-error" role="alert">
           {error}{" "}
-          <button onClick={() => void ticketsStore.load({ status: status === "" ? undefined : status, priority: priority === "" ? undefined : priority, page, pageSize, sortOrder, assignedOnly: isAgent && agentTab === "assigned", unassignedOnly: isAgent && agentTab === "available" })}>تلاش دوباره</button>
+          <button onClick={() => void ticketsStore.load({ status: status === "" ? undefined : status, priority: priority === "" ? undefined : priority, page, pageSize, sortOrder, assignedOnly: isAgent, unassignedOnly: false })}>تلاش دوباره</button>
         </div>
       )}
       {loading ? (
@@ -88,7 +67,7 @@ export function TicketsPage({
         <TicketList
           items={visibleItems}
           isAgent={isAgent}
-          emptyAgentTab={agentTab}
+          emptyAgentTab="assigned"
           onOpen={onOpen}
         />
       )}

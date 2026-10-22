@@ -9,6 +9,7 @@ internal static class SampleSeedData
 {
     public static readonly Guid UserRoleId = Guid.Parse("10000000-0000-0000-0000-000000000001");
     public static readonly Guid AgentRoleId = Guid.Parse("10000000-0000-0000-0000-000000000002");
+    public static readonly Guid AdminRoleId = Guid.Parse("10000000-0000-0000-0000-000000000003");
 
     public static readonly Guid Agent1Id = Guid.Parse("20000000-0000-0000-0000-000000000001");
     public static readonly Guid Agent2Id = Guid.Parse("20000000-0000-0000-0000-000000000002");
@@ -23,6 +24,7 @@ internal static class SampleSeedData
     public static readonly Guid User1ProfileId = Guid.Parse("50000000-0000-0000-0000-000000000001");
     public static readonly Guid User2ProfileId = Guid.Parse("50000000-0000-0000-0000-000000000002");
     public static readonly Guid User3ProfileId = Guid.Parse("50000000-0000-0000-0000-000000000003");
+    public static readonly Guid SupportDepartmentId = Guid.Parse("55000000-0000-0000-0000-000000000001");
 
     private static readonly DateTime SeedDate = new(2026, 1, 15, 9, 0, 0, DateTimeKind.Utc);
 
@@ -39,7 +41,8 @@ internal static class SampleSeedData
     public static readonly IdentityRole<Guid>[] Roles =
     [
         new() { Id = UserRoleId, Name = "User", NormalizedName = "USER", ConcurrencyStamp = "10000000-0000-0000-0000-000000000011" },
-        new() { Id = AgentRoleId, Name = "Agent", NormalizedName = "AGENT", ConcurrencyStamp = "10000000-0000-0000-0000-000000000012" }
+        new() { Id = AgentRoleId, Name = "Agent", NormalizedName = "AGENT", ConcurrencyStamp = "10000000-0000-0000-0000-000000000012" },
+        new() { Id = AdminRoleId, Name = "Admin", NormalizedName = "ADMIN", ConcurrencyStamp = "10000000-0000-0000-0000-000000000013" }
     ];
 
     public static readonly IdentityUserRole<Guid>[] UserRoles =
@@ -54,7 +57,12 @@ internal static class SampleSeedData
 
     public static readonly object[] NormalUsers =
     [
-        Profile(User1ProfileId, User1Id), Profile(User2ProfileId, User2Id), Profile(User3ProfileId, User3Id)
+        Profile(User1ProfileId, User1Id, SupportDepartmentId), Profile(User2ProfileId, User2Id, SupportDepartmentId), Profile(User3ProfileId, User3Id, SupportDepartmentId)
+    ];
+
+    public static readonly Department[] Departments =
+    [
+        new() { Id = SupportDepartmentId, Name = "پشتیبانی", CreatedAt = SeedDate, UpdatedAt = SeedDate, CreatedById = User1Id, UpdatedById = User1Id }
     ];
 
     public static readonly object[] Agents =
@@ -104,9 +112,10 @@ internal static class SampleSeedData
         AccessFailedCount = 0
     };
 
-    private static object Profile(Guid id, Guid appUserId) => new
+    private static object Profile(Guid id, Guid appUserId, Guid? departmentId = null) => new
     {
         Id = id, AppUserId = appUserId,
+        DepartmentId = departmentId,
         CreatedAt = SeedDate, UpdatedAt = SeedDate,
         CreatedById = appUserId, UpdatedById = appUserId
     };
@@ -135,6 +144,7 @@ internal static class SampleSeedData
         {
             Id = Guid.Parse(id), TicketId = Guid.Parse($"60000000-0000-0000-0000-{ticketNumber:000000000000}"),
             SenderId = senderId, Message = message, CreatedAt = createdAt, UpdatedAt = createdAt,
+            IsConfirmed = senderId != Agent1Id && senderId != Agent2Id && senderId != Agent3Id,
             CreatedById = auditUserId, UpdatedById = auditUserId
         };
     }

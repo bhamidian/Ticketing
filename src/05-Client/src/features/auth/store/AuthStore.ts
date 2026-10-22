@@ -8,7 +8,7 @@ function claims(token: string) {
   catch { return {} }
 }
 class AuthStoreClass {
-  private state: AuthState = { token: null, userName: '', isAgent: false, isRestoring: true }
+  private state: AuthState = { token: null, userName: '', departmentName: null, isAgent: false, isAdmin: false, isRestoring: true }
   private listeners = new Set<() => void>()
   private restorePromise: Promise<void> | null = null
   getSnapshot = () => this.state
@@ -18,14 +18,28 @@ class AuthStoreClass {
   private applyToken(token: AuthState['token'], fallbackName = '') {
     if (!token) {
       setAccessToken(null)
-      this.publish({ token: null, userName: '', isAgent: false, isRestoring: false })
+      this.publish({ token: null, userName: '', departmentName: null, isAgent: false, isAdmin: false, isRestoring: false })
       return
     }
 
     setAccessToken(token.accessToken)
     const payload = claims(token.accessToken)
     const role = payload.role ?? payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role']
-    this.publish({ token, userName: String(payload.unique_name ?? payload.name ?? fallbackName), isAgent: [role].flat().includes('Agent'), isRestoring: false })
+    const roles = [role].flat().map(String)
+    this.publish({ token, userName: String(payload.unique_name ?? payload.name ?? fallbackName), departmentName: null, isAgent: roles.includes('Agent'), isAdmin: roles.includes('Admin'), isRestoring: false })
+  }
+
+  async loadProfile() {
+    const accessToken = this.state.token?.accessToken
+    if (!accessToken) return
+    try {
+      const profile = await authApi.me()
+      if (this.state.token?.accessToken === accessToken)
+        this.publish({ ...this.state, departmentName: profile.departmentName })
+    } catch {
+      if (this.state.token?.accessToken === accessToken)
+        this.publish({ ...this.state, departmentName: null })
+    }
   }
 
   restore() {

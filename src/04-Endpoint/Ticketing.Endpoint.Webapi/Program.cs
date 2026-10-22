@@ -1,23 +1,18 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi;
-using Ticketing.Domain.Entites;
 using Ticketing.Infrastructure.Efcore;
-using Ticketing.Infrastructure.Efcore.Persistence;
 using Ticketing.Infrastructure.JwtService;
 using Ticketing.Infrastructure.JwtService.Options;
 using Ticketing.Application;
+using Ticketing.Application.Contracts.Services;
 using Ticketing.Endpoint.Webapi.Middleware;
 using Ticketing.Endpoint.Webapi.Mapping;
 using Ticketing.Endpoint.Webapi.Filters;
 using Serilog;
-using Ticketing.Framework;
-using Ticketing.Infrastructure.FileService.Contracts;
 using Ticketing.Infrastructure.FileService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -83,17 +78,15 @@ builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationSc
             RoleClaimType = System.Security.Claims.ClaimTypes.Role
         };
     });
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("Admin", policy => policy.RequireRole("Admin"));
+});
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 if (!string.IsNullOrWhiteSpace(connectionString))
 {
-    builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
-    builder.Services.AddIdentityCore<AppUser>()
-        .AddRoles<IdentityRole<Guid>>()
-        .AddErrorDescriber<PersianIdentityErrorDescriber>()
-        .AddEntityFrameworkStores<ApplicationDbContext>();
-    builder.Services.AddEfCoreRepositories();
+    builder.Services.AddEfCorePersistence(connectionString);
 }
 
 var app = builder.Build();
@@ -103,8 +96,7 @@ if (app.Environment.IsDevelopment() && builder.Configuration.GetValue<bool>("See
     if (string.IsNullOrWhiteSpace(connectionString))
         throw new InvalidOperationException("Configure ConnectionStrings:DefaultConnection before enabling runtime seeding.");
 
-    await using var scope = app.Services.CreateAsyncScope();
-    await scope.ServiceProvider.GetRequiredService<DatabaseSeeder>().SeedAsync();
+    await app.Services.SeedDevelopmentDataAsync();
 }
 
 if (app.Environment.IsDevelopment())

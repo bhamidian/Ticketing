@@ -5,6 +5,7 @@ import type {
   PagedTicketsResult,
   TicketPriority,
   TicketStatus,
+  AgentOption,
 } from "../types/ticket";
 export class TicketsApi {
   list(filters: { status?: TicketStatus; priority?: TicketPriority; page?: number; pageSize?: number; sortOrder?: 'newest' | 'oldest'; assignedOnly?: boolean; unassignedOnly?: boolean } = {}) {
@@ -24,9 +25,6 @@ export class TicketsApi {
   }
   get(id: string) {
     return httpClient.get<TicketDetails>(`/api/Ticket/${id}`);
-  }
-  claim(id: string) {
-    return httpClient.post<TicketDetails>(`/api/Ticket/${id}/claim`);
   }
   create(request: CreateTicketRequest, image?: File | null) {
     const form = new FormData();
@@ -48,6 +46,18 @@ export class TicketsApi {
     return httpClient.patch<TicketDetails>(`/api/Ticket/${id}/status`, {
       status,
     });
+  }
+  agents() {
+    return httpClient.get<AgentOption[]>('/api/Admin/agents')
+  }
+  assign(ticketId: string, agentUserId: string) {
+    return httpClient.post<void>(`/api/Admin/tickets/${ticketId}/assign`, { agentUserId })
+  }
+  confirmMessage(messageId: string) {
+    return httpClient.patch<void>(`/api/Admin/messages/${messageId}/confirm`)
+  }
+  updateAgentMessage(ticketId: string, messageId: string, message: string) {
+    return httpClient.patch<void>(`/api/Admin/tickets/${ticketId}/messages/${messageId}`, { message })
   }
 }
 export const ticketsApi = new TicketsApi();

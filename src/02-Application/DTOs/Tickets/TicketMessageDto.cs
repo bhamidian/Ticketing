@@ -6,4 +6,5 @@ public sealed record TicketMessageDto(
     string SenderName,
     string Message,
     string? PictureUrl,
-    DateTime CreatedAtUtc);
+    DateTime CreatedAtUtc,
+    bool? IsConfirmed);

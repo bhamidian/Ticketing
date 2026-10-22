@@ -8,6 +8,7 @@ import { useAuthStore, authStore } from '../features/auth/store/AuthStore'
 import { useTicketsStore, ticketsStore } from '../features/tickets/store/TicketsStore'
 import { NewTicketPage } from '../features/tickets/pages/NewTicketPage'
 import { TicketDetailPage } from '../features/tickets/pages/TicketDetailPage'
+import { AdminTicketsPage } from '../features/tickets/pages/AdminTicketsPage'
 import type { TicketSummary } from '../features/tickets/types/ticket'
 import { TicketPriority } from '../features/tickets/types/ticket'
 
@@ -40,6 +41,10 @@ export function App() {
   useEffect(() => { void authStore.restore() }, [])
 
   useEffect(() => {
+    if (auth.token) void authStore.loadProfile()
+  }, [auth.token])
+
+  useEffect(() => {
     const onPopState = () => setRoute(readRoute())
     window.addEventListener('popstate', onPopState)
     return () => window.removeEventListener('popstate', onPopState)
@@ -69,7 +74,7 @@ export function App() {
 
     requestedTicketId.current = route.ticketId
     void ticketsStore.open(route.ticketId)
-  }, [auth.token, auth.isAgent, route, selected?.id])
+  }, [auth.token, auth.isAgent, auth.isAdmin, route, selected?.id])
 
   function navigate(path: string) {
     if (window.location.pathname !== path) window.history.pushState(null, '', path)
@@ -107,19 +112,20 @@ export function App() {
     <AppProviders>
       <AppShell
         userName={auth.userName}
+        departmentName={auth.departmentName}
         isAgent={auth.isAgent}
+        isAdmin={auth.isAdmin}
         onLogout={() => void authStore.logout()}
         onTickets={() => navigate('/tickets')}
         onNew={() => navigate('/tickets/new')}
       >
         {route.page === 'list' && (
-          <TicketsPage
-            isAgent={auth.isAgent}
-            onNew={() => navigate('/tickets/new')}
-            onOpen={open}
-          />
+          auth.isAdmin
+            ? <AdminTicketsPage onOpen={open} />
+            : <TicketsPage isAgent={auth.isAgent} onNew={() => navigate('/tickets/new')} onOpen={open} />
         )}
-        {route.page === 'new' && (
+        {route.page === 'new' && auth.isAdmin && <div className="loading-state">ادمین امکان ثبت تیکت ندارد.</div>}
+        {route.page === 'new' && !auth.isAdmin && (
           <NewTicketPage onCancel={() => navigate('/tickets')} onCreate={create} />
         )}
         {route.page === 'detail' && (selected?.id === route.ticketId ? (
@@ -127,11 +133,13 @@ export function App() {
             ticket={selected}
             userId={userId}
             isAgent={auth.isAgent}
+            isAdmin={auth.isAdmin}
             onBack={() => navigate('/tickets')}
             onReply={async (text) => { await ticketsStore.reply(selected.id, text) }}
             onClose={async () => { await ticketsStore.close(selected.id) }}
-            onClaim={async () => { await ticketsStore.claim(selected.id) }}
             onChangeStatus={async (status) => { await ticketsStore.changeStatus(selected.id, status) }}
+            onConfirmMessage={async (messageId) => { await ticketsStore.confirmMessage(selected.id, messageId) }}
+            onEditMessage={async (messageId, text) => { await ticketsStore.updateAgentMessage(selected.id, messageId, text) }}
           />
         ) : (
           <div className="loading-state">
