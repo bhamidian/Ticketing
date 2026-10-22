@@ -1,8 +1,8 @@
 import type { PropsWithChildren } from 'react'
 import { useEffect, useRef, useState } from 'react'
 
-interface Props extends PropsWithChildren { userName: string; isAgent: boolean; onLogout: () => void; onTickets: () => void; onNew: () => void }
-export function AppShell({ children, userName, isAgent, onLogout, onTickets, onNew }: Props) {
+interface Props extends PropsWithChildren { userName: string; departmentName: string | null; isAgent: boolean; isAdmin: boolean; onLogout: () => void; onTickets: () => void; onNew: () => void }
+export function AppShell({ children, userName, departmentName, isAgent, isAdmin, onLogout, onTickets, onNew }: Props) {
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const userMenuRef = useRef<HTMLDivElement>(null)
 
@@ -28,7 +28,7 @@ export function AppShell({ children, userName, isAgent, onLogout, onTickets, onN
     <div className="app-shell" dir="rtl">
       <header className="app-header">
         <a className="brand" href="/tickets" aria-label="خانه" onClick={(event) => { event.preventDefault(); onTickets() }}><span className="brand-mark">ت</span><span>تیکت‌پلاس</span></a>
-        <nav className="main-nav"><button className="nav-link active" onClick={onTickets}>{isAgent ? 'میز پشتیبانی' : 'درخواست‌های من'}</button>{!isAgent && <button className="nav-link" onClick={onNew}>ثبت تیکت</button>}</nav>
+        <nav className="main-nav"><button className="nav-link active" onClick={onTickets}>{isAdmin ? 'میز مدیریت' : isAgent ? 'میز پشتیبانی' : 'درخواست‌های من'}</button>{!isAgent && !isAdmin && <button className="nav-link" onClick={onNew}>ثبت تیکت</button>}</nav>
         <div className="header-user" ref={userMenuRef}>
           <button
             className="user-menu-trigger"
@@ -37,7 +37,7 @@ export function AppShell({ children, userName, isAgent, onLogout, onTickets, onN
             onClick={() => setUserMenuOpen((open) => !open)}
           >
             <span className="user-avatar">{userName.slice(0, 1)}</span>
-            <span className="user-name">{userName}</span>
+            <span className="user-identity"><span className="user-name">{userName}</span>{departmentName && <span className="user-department">دپارتمان {departmentName}</span>}</span>
             <span className="user-menu-chevron" aria-hidden="true">⌄</span>
           </button>
           {userMenuOpen && (

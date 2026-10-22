@@ -63,6 +63,13 @@ namespace Ticketing.Infrastructure.Efcore.Persistence.Migrations
                             ConcurrencyStamp = "10000000-0000-0000-0000-000000000012",
                             Name = "Agent",
                             NormalizedName = "AGENT"
+                        },
+                        new
+                        {
+                            Id = new Guid("10000000-0000-0000-0000-000000000003"),
+                            ConcurrencyStamp = "10000000-0000-0000-0000-000000000013",
+                            Name = "Admin",
+                            NormalizedName = "ADMIN"
                         });
                 });
 
@@ -423,6 +430,40 @@ namespace Ticketing.Infrastructure.Efcore.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Ticketing.Domain.Entites.Department", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uniqueidentifier");
+                    b.Property<DateTime>("CreatedAt").HasColumnType("datetime2");
+                    b.Property<Guid>("CreatedById").HasColumnType("uniqueidentifier");
+                    b.Property<string>("Name").IsRequired().HasMaxLength(100).HasColumnType("nvarchar(100)");
+                    b.Property<DateTime>("UpdatedAt").HasColumnType("datetime2");
+                    b.Property<Guid>("UpdatedById").HasColumnType("uniqueidentifier");
+                    b.HasKey("Id");
+                    b.ToTable("Departments");
+                    b.HasData(new
+                    {
+                        Id = new Guid("55000000-0000-0000-0000-000000000001"),
+                        Name = "پشتیبانی",
+                        CreatedAt = new DateTime(2026, 1, 15, 9, 0, 0, DateTimeKind.Utc),
+                        CreatedById = new Guid("30000000-0000-0000-0000-000000000001"),
+                        UpdatedAt = new DateTime(2026, 1, 15, 9, 0, 0, DateTimeKind.Utc),
+                        UpdatedById = new Guid("30000000-0000-0000-0000-000000000001")
+                    });
+                });
+
+            modelBuilder.Entity("Ticketing.Domain.Entites.Admin", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uniqueidentifier");
+                    b.Property<Guid?>("AppUserId").HasColumnType("uniqueidentifier");
+                    b.Property<DateTime>("CreatedAt").HasColumnType("datetime2");
+                    b.Property<Guid>("CreatedById").HasColumnType("uniqueidentifier");
+                    b.Property<DateTime>("UpdatedAt").HasColumnType("datetime2");
+                    b.Property<Guid>("UpdatedById").HasColumnType("uniqueidentifier");
+                    b.HasKey("Id");
+                    b.HasIndex("AppUserId").IsUnique().HasFilter("[AppUserId] IS NOT NULL");
+                    b.ToTable("Admins");
+                });
+
             modelBuilder.Entity("Ticketing.Domain.Entites.NormalUser", b =>
                 {
                     b.Property<Guid>("Id")
@@ -430,6 +471,9 @@ namespace Ticketing.Infrastructure.Efcore.Persistence.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("AppUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("DepartmentId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
@@ -449,6 +493,8 @@ namespace Ticketing.Infrastructure.Efcore.Persistence.Migrations
                     b.HasIndex("AppUserId")
                         .IsUnique();
 
+                    b.HasIndex("DepartmentId");
+
                     b.ToTable("NormalUsers");
 
                     b.HasData(
@@ -456,6 +502,7 @@ namespace Ticketing.Infrastructure.Efcore.Persistence.Migrations
                         {
                             Id = new Guid("50000000-0000-0000-0000-000000000001"),
                             AppUserId = new Guid("30000000-0000-0000-0000-000000000001"),
+                            DepartmentId = new Guid("55000000-0000-0000-0000-000000000001"),
                             CreatedAt = new DateTime(2026, 1, 15, 9, 0, 0, 0, DateTimeKind.Utc),
                             CreatedById = new Guid("30000000-0000-0000-0000-000000000001"),
                             UpdatedAt = new DateTime(2026, 1, 15, 9, 0, 0, 0, DateTimeKind.Utc),
@@ -465,6 +512,7 @@ namespace Ticketing.Infrastructure.Efcore.Persistence.Migrations
                         {
                             Id = new Guid("50000000-0000-0000-0000-000000000002"),
                             AppUserId = new Guid("30000000-0000-0000-0000-000000000002"),
+                            DepartmentId = new Guid("55000000-0000-0000-0000-000000000001"),
                             CreatedAt = new DateTime(2026, 1, 15, 9, 0, 0, 0, DateTimeKind.Utc),
                             CreatedById = new Guid("30000000-0000-0000-0000-000000000002"),
                             UpdatedAt = new DateTime(2026, 1, 15, 9, 0, 0, 0, DateTimeKind.Utc),
@@ -474,6 +522,7 @@ namespace Ticketing.Infrastructure.Efcore.Persistence.Migrations
                         {
                             Id = new Guid("50000000-0000-0000-0000-000000000003"),
                             AppUserId = new Guid("30000000-0000-0000-0000-000000000003"),
+                            DepartmentId = new Guid("55000000-0000-0000-0000-000000000001"),
                             CreatedAt = new DateTime(2026, 1, 15, 9, 0, 0, 0, DateTimeKind.Utc),
                             CreatedById = new Guid("30000000-0000-0000-0000-000000000003"),
                             UpdatedAt = new DateTime(2026, 1, 15, 9, 0, 0, 0, DateTimeKind.Utc),
@@ -679,6 +728,9 @@ namespace Ticketing.Infrastructure.Efcore.Persistence.Migrations
                     b.Property<Guid>("CreatedById")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<bool?>("IsConfirmed")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Message")
                         .IsRequired()
                         .HasMaxLength(4000)
@@ -716,6 +768,7 @@ namespace Ticketing.Infrastructure.Efcore.Persistence.Migrations
                             CreatedById = new Guid("30000000-0000-0000-0000-000000000001"),
                             Message = "I requested a password reset, but the email has not arrived.",
                             SenderId = new Guid("30000000-0000-0000-0000-000000000001"),
+                            IsConfirmed = true,
                             TicketId = new Guid("60000000-0000-0000-0000-000000000001"),
                             UpdatedAt = new DateTime(2026, 1, 15, 9, 10, 0, 0, DateTimeKind.Utc),
                             UpdatedById = new Guid("30000000-0000-0000-0000-000000000001")
@@ -727,6 +780,7 @@ namespace Ticketing.Infrastructure.Efcore.Persistence.Migrations
                             CreatedById = new Guid("30000000-0000-0000-0000-000000000001"),
                             Message = "I checked my spam folder as well, but it is not there.",
                             SenderId = new Guid("30000000-0000-0000-0000-000000000001"),
+                            IsConfirmed = true,
                             TicketId = new Guid("60000000-0000-0000-0000-000000000001"),
                             UpdatedAt = new DateTime(2026, 1, 15, 9, 20, 0, 0, DateTimeKind.Utc),
                             UpdatedById = new Guid("30000000-0000-0000-0000-000000000001")
@@ -738,6 +792,7 @@ namespace Ticketing.Infrastructure.Efcore.Persistence.Migrations
                             CreatedById = new Guid("30000000-0000-0000-0000-000000000001"),
                             Message = "The invoice total does not match my order confirmation.",
                             SenderId = new Guid("30000000-0000-0000-0000-000000000001"),
+                            IsConfirmed = true,
                             TicketId = new Guid("60000000-0000-0000-0000-000000000002"),
                             UpdatedAt = new DateTime(2026, 1, 16, 9, 20, 0, 0, DateTimeKind.Utc),
                             UpdatedById = new Guid("30000000-0000-0000-0000-000000000001")
@@ -749,6 +804,7 @@ namespace Ticketing.Infrastructure.Efcore.Persistence.Migrations
                             CreatedById = new Guid("20000000-0000-0000-0000-000000000001"),
                             Message = "I am checking the order details and will update you shortly.",
                             SenderId = new Guid("20000000-0000-0000-0000-000000000001"),
+                            IsConfirmed = false,
                             TicketId = new Guid("60000000-0000-0000-0000-000000000002"),
                             UpdatedAt = new DateTime(2026, 1, 16, 9, 40, 0, 0, DateTimeKind.Utc),
                             UpdatedById = new Guid("20000000-0000-0000-0000-000000000001")
@@ -760,6 +816,7 @@ namespace Ticketing.Infrastructure.Efcore.Persistence.Migrations
                             CreatedById = new Guid("30000000-0000-0000-0000-000000000002"),
                             Message = "The app closes immediately after I sign in.",
                             SenderId = new Guid("30000000-0000-0000-0000-000000000002"),
+                            IsConfirmed = true,
                             TicketId = new Guid("60000000-0000-0000-0000-000000000003"),
                             UpdatedAt = new DateTime(2026, 1, 17, 9, 20, 0, 0, DateTimeKind.Utc),
                             UpdatedById = new Guid("30000000-0000-0000-0000-000000000002")
@@ -771,6 +828,7 @@ namespace Ticketing.Infrastructure.Efcore.Persistence.Migrations
                             CreatedById = new Guid("20000000-0000-0000-0000-000000000002"),
                             Message = "Please clear the app cache and try again. We are also preparing a fix for this crash.",
                             SenderId = new Guid("20000000-0000-0000-0000-000000000002"),
+                            IsConfirmed = false,
                             TicketId = new Guid("60000000-0000-0000-0000-000000000003"),
                             UpdatedAt = new DateTime(2026, 1, 17, 9, 40, 0, 0, DateTimeKind.Utc),
                             UpdatedById = new Guid("20000000-0000-0000-0000-000000000002")
@@ -782,6 +840,7 @@ namespace Ticketing.Infrastructure.Efcore.Persistence.Migrations
                             CreatedById = new Guid("30000000-0000-0000-0000-000000000002"),
                             Message = "Please update the email address associated with my account.",
                             SenderId = new Guid("30000000-0000-0000-0000-000000000002"),
+                            IsConfirmed = true,
                             TicketId = new Guid("60000000-0000-0000-0000-000000000004"),
                             UpdatedAt = new DateTime(2026, 1, 18, 9, 20, 0, 0, DateTimeKind.Utc),
                             UpdatedById = new Guid("30000000-0000-0000-0000-000000000002")
@@ -793,6 +852,7 @@ namespace Ticketing.Infrastructure.Efcore.Persistence.Migrations
                             CreatedById = new Guid("20000000-0000-0000-0000-000000000001"),
                             Message = "The email address has been updated. Please sign in with the new address.",
                             SenderId = new Guid("20000000-0000-0000-0000-000000000001"),
+                            IsConfirmed = false,
                             TicketId = new Guid("60000000-0000-0000-0000-000000000004"),
                             UpdatedAt = new DateTime(2026, 1, 18, 9, 40, 0, 0, DateTimeKind.Utc),
                             UpdatedById = new Guid("20000000-0000-0000-0000-000000000001")
@@ -804,6 +864,7 @@ namespace Ticketing.Infrastructure.Efcore.Persistence.Migrations
                             CreatedById = new Guid("30000000-0000-0000-0000-000000000003"),
                             Message = "Two items from my order were missing from the package.",
                             SenderId = new Guid("30000000-0000-0000-0000-000000000003"),
+                            IsConfirmed = true,
                             TicketId = new Guid("60000000-0000-0000-0000-000000000005"),
                             UpdatedAt = new DateTime(2026, 1, 19, 9, 20, 0, 0, DateTimeKind.Utc),
                             UpdatedById = new Guid("30000000-0000-0000-0000-000000000003")
@@ -815,6 +876,7 @@ namespace Ticketing.Infrastructure.Efcore.Persistence.Migrations
                             CreatedById = new Guid("30000000-0000-0000-0000-000000000003"),
                             Message = "I need a copy of the receipt for my last purchase.",
                             SenderId = new Guid("30000000-0000-0000-0000-000000000003"),
+                            IsConfirmed = true,
                             TicketId = new Guid("60000000-0000-0000-0000-000000000006"),
                             UpdatedAt = new DateTime(2026, 1, 20, 9, 20, 0, 0, DateTimeKind.Utc),
                             UpdatedById = new Guid("30000000-0000-0000-0000-000000000003")
@@ -826,6 +888,7 @@ namespace Ticketing.Infrastructure.Efcore.Persistence.Migrations
                             CreatedById = new Guid("20000000-0000-0000-0000-000000000003"),
                             Message = "I have attached the receipt to your account. This ticket is now closed.",
                             SenderId = new Guid("20000000-0000-0000-0000-000000000003"),
+                            IsConfirmed = false,
                             TicketId = new Guid("60000000-0000-0000-0000-000000000006"),
                             UpdatedAt = new DateTime(2026, 1, 20, 9, 40, 0, 0, DateTimeKind.Utc),
                             UpdatedById = new Guid("20000000-0000-0000-0000-000000000003")
@@ -894,8 +957,23 @@ namespace Ticketing.Infrastructure.Efcore.Persistence.Migrations
                     b.Navigation("AppUser");
                 });
 
+            modelBuilder.Entity("Ticketing.Domain.Entites.Admin", b =>
+                {
+                    b.HasOne("Ticketing.Domain.Entites.AppUser", "AppUser")
+                        .WithOne("Admin")
+                        .HasForeignKey("Ticketing.Domain.Entites.Admin", "AppUserId")
+                        .OnDelete(DeleteBehavior.Cascade);
+                    b.Navigation("AppUser");
+                });
+
             modelBuilder.Entity("Ticketing.Domain.Entites.NormalUser", b =>
                 {
+                    b.HasOne("Ticketing.Domain.Entites.Department", "Department")
+                        .WithMany("NormalUsers")
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("Ticketing.Domain.Entites.AppUser", "AppUser")
                         .WithOne("NormalUser")
                         .HasForeignKey("Ticketing.Domain.Entites.NormalUser", "AppUserId")
@@ -903,6 +981,7 @@ namespace Ticketing.Infrastructure.Efcore.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("AppUser");
+                    b.Navigation("Department");
                 });
 
             modelBuilder.Entity("Ticketing.Domain.Entites.RefreshToken", b =>
@@ -960,6 +1039,8 @@ namespace Ticketing.Infrastructure.Efcore.Persistence.Migrations
 
             modelBuilder.Entity("Ticketing.Domain.Entites.AppUser", b =>
                 {
+                    b.Navigation("Admin");
+
                     b.Navigation("Agent");
 
                     b.Navigation("AssignedTickets");
@@ -974,6 +1055,11 @@ namespace Ticketing.Infrastructure.Efcore.Persistence.Migrations
             modelBuilder.Entity("Ticketing.Domain.Entites.NormalUser", b =>
                 {
                     b.Navigation("Tickets");
+                });
+
+            modelBuilder.Entity("Ticketing.Domain.Entites.Department", b =>
+                {
+                    b.Navigation("NormalUsers");
                 });
 
             modelBuilder.Entity("Ticketing.Domain.Entites.Ticket", b =>

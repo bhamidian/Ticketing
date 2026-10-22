@@ -13,7 +13,7 @@ public sealed class GetTicketsQueryHandler(
     public async Task<Result<PagedTicketsDto>> Handle(GetTicketsQuery request, CancellationToken cancellationToken)
     {
         Guid? normalUserId = null;
-        if (!request.IsStaff)
+        if (!request.IsStaff && !request.IsAdmin)
         {
             var profile = await normalUsers.GetByAppUserIdAsync(request.UserId, cancellationToken);
             if (profile is null)
@@ -26,9 +26,9 @@ public sealed class GetTicketsQueryHandler(
         var page = Math.Clamp(request.Page, 1, int.MaxValue / pageSize);
         var (items, totalCount) = await tickets.GetFilteredAsync(
             normalUserId, request.Status, request.Priority,
-            request.IsStaff ? request.UserId : null,
-            request.IsStaff && request.AssignedOnly,
-            request.IsStaff && request.UnassignedOnly,
+            request.IsAdmin ? null : request.IsStaff ? request.UserId : null,
+            request.IsStaff || (request.IsAdmin && request.AssignedOnly),
+            request.IsAdmin && request.UnassignedOnly,
             page, pageSize, request.OldestFirst, cancellationToken);
         var mapped = items
             .Select(ApplicationMapper.ToTicketSummaryDto)

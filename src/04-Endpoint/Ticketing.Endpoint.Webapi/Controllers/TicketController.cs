@@ -2,14 +2,13 @@ using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Ticketing.Application.DTOs.Tickets;
+using Ticketing.Application.Contracts.Services;
+using Ticketing.Application.Features.Tickets.Queries.GetTicketImage;
 using Ticketing.Application.Mapping;
 using Ticketing.Endpoint.Webapi.Mapping;
 using Ticketing.Domain.Enums;
 using Ticketing.Endpoint.Webapi.DTOs;
-using Ticketing.Infrastructure.Efcore.Persistence;
-using Ticketing.Infrastructure.FileService.Contracts;
 
 namespace Ticketing.Endpoint.Webapi.Controllers;
 
@@ -18,9 +17,7 @@ namespace Ticketing.Endpoint.Webapi.Controllers;
 [Route("api/[controller]")]
 public sealed class TicketController(
     ISender sender,
-    IFileService fileService,
-    ApplicationDbContext dbContext,
-    IWebHostEnvironment environment) : ControllerBase
+    IFileService fileService) : ControllerBase
 {
     private const long MaxImageSize = 5 * 1024 * 1024;
 
@@ -40,23 +37,23 @@ public sealed class TicketController(
         if (userId is null)
             return Unauthorized();
 
-        var isStaff = IsStaff();
         pageSize = Math.Clamp(pageSize, 1, 100);
         page = Math.Clamp(page, 1, int.MaxValue / pageSize);
-        if (isStaff && unassignedOnly)
-            status = TicketLifeCycleEnum.OPEN;
+        var isAdmin = User.IsInRole("Admin");
+        var isAgent = IsStaff() && !isAdmin;
 
         var result = await sender.Send(
             ApplicationMapper.ToGetTicketsQuery(
                 userId.Value,
-                isStaff,
+                isAgent,
                 status,
                 priority,
                 page,
                 pageSize,
                 string.Equals(sortOrder, "oldest", StringComparison.OrdinalIgnoreCase),
-                assignedOnly && !unassignedOnly,
-                unassignedOnly),
+                isAgent || (isAdmin && assignedOnly),
+                isAdmin && unassignedOnly,
+                isAdmin),
             cancellationToken);
         return result.IsSuccess ? Ok(result.Value) : ApiResultMapper.ToProblem(result.Error!);
     }
@@ -70,7 +67,7 @@ public sealed class TicketController(
             return Unauthorized();
 
         var result = await sender.Send(
-            ApplicationMapper.ToGetTicketDetailsQuery(userId.Value, IsStaff(), ticketId),
+            ApplicationMapper.ToGetTicketDetailsQuery(userId.Value, IsStaff(), ticketId, User.IsInRole("Admin")),
             cancellationToken);
         return result.IsSuccess ? Ok(result.Value) : ApiResultMapper.ToProblem(result.Error!);
     }
@@ -83,28 +80,16 @@ public sealed class TicketController(
         if (userId is null)
             return Unauthorized();
 
-        var ticketResult = await sender.Send(
-            ApplicationMapper.ToGetTicketDetailsQuery(userId.Value, IsStaff(), ticketId),
-            cancellationToken);
-        if (!ticketResult.IsSuccess)
-            return ApiResultMapper.ToProblem(ticketResult.Error!);
+        var result = await sender.Send(new GetTicketImageQuery(userId.Value, IsStaff(), ticketId, messageId, User.IsInRole("Admin")), cancellationToken);
+        if (!result.IsSuccess)
+            return ApiResultMapper.ToProblem(result.Error!);
 
-        var message = await dbContext.TicketMessages.AsNoTracking()
-            .SingleOrDefaultAsync(item => item.Id == messageId && item.TicketId == ticketId, cancellationToken);
-        if (message is null || string.IsNullOrWhiteSpace(message.PictureUrl) ||
-            !message.PictureUrl.StartsWith("/Teams/Tickets/", StringComparison.Ordinal))
-            return NotFound(new ProblemDetails { Title = "تصویر پیوست‌شده پیدا نشد." });
-
-        var fileName = Path.GetFileName(message.PictureUrl);
-        var webRootPath = string.IsNullOrWhiteSpace(environment.WebRootPath)
-            ? Path.Combine(environment.ContentRootPath, "wwwroot")
-            : environment.WebRootPath;
-        var physicalPath = Path.Combine(webRootPath, "Teams", "Tickets", fileName);
-        if (!System.IO.File.Exists(physicalPath))
+        var stream = fileService.OpenRead(result.Value!.RelativePath);
+        if (stream is null)
             return NotFound(new ProblemDetails { Title = "فایل تصویر در دسترس نیست." });
 
         Response.Headers.CacheControl = "private, no-store";
-        return PhysicalFile(physicalPath, GetImageContentType(fileName), enableRangeProcessing: true);
+        return File(stream, GetImageContentType(result.Value.RelativePath), enableRangeProcessing: true);
     }
 
     [HttpPost("{ticketId:guid}/claim")]
@@ -141,8 +126,12 @@ public sealed class TicketController(
 
         string? pictureUrl = null;
         if (request.Image is not null)
-            pictureUrl = fileService.Upload(request.Image, "Tickets")
+        {
+            await using var imageStream = request.Image.OpenReadStream();
+            pictureUrl = await fileService.UploadAsync(
+                imageStream, request.Image.FileName, "Tickets", cancellationToken)
                 ?? throw new InvalidOperationException("ذخیرهٔ تصویر پیوست‌شده انجام نشد.");
+        }
 
         var dto = new CreateTicketRequestDto(request.Subject, request.Message, request.Priority, pictureUrl);
         var result = await sender.Send(ApplicationMapper.ToCommand(dto, userId.Value), cancellationToken);
@@ -212,7 +201,7 @@ public sealed class TicketController(
         return Guid.TryParse(value, out var userId) ? userId : null;
     }
 
-    private bool IsStaff() => User.IsInRole("Agent");
+    private bool IsStaff() => User.IsInRole("Agent") && !User.IsInRole("Admin");
 
     private static async Task<string?> ValidateImageAsync(IFormFile image, CancellationToken cancellationToken)
     {

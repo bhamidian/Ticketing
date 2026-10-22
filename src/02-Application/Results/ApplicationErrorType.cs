@@ -5,5 +5,6 @@ public enum ApplicationErrorType
     Unauthorized,
     Forbidden,
     NotFound,
-    Conflict
+    Conflict,
+    Validation
 }

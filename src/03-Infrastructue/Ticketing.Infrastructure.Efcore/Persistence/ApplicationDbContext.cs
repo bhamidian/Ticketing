@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Ticketing.Domain.Entites;
+using Ticketing.Infrastructure.Efcore.Configurations;
 using Ticketing.Infrastructure.Efcore.Persistence.Configurations;
 
 namespace Ticketing.Infrastructure.Efcore.Persistence
@@ -14,6 +15,8 @@ namespace Ticketing.Infrastructure.Efcore.Persistence
         public DbSet<NormalUser> NormalUsers => Set<NormalUser>();
         public DbSet<Agent> Agents => Set<Agent>();
         public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+        public DbSet<Admin> Admins => Set<Admin>();
+        public DbSet<Department> Departments => Set<Department>();
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -21,13 +24,14 @@ namespace Ticketing.Infrastructure.Efcore.Persistence
 
             builder.Entity<IdentityRole<Guid>>().HasData(SampleSeedData.Roles);
             builder.Entity<IdentityUserRole<Guid>>().HasData(SampleSeedData.UserRoles);
-
             builder.ApplyConfiguration(new TicketConfiguration());
             builder.ApplyConfiguration(new TicketMessageConfiguration());
             builder.ApplyConfiguration(new NormalUserConfiguration());
             builder.ApplyConfiguration(new AgentConfiguration());
+            builder.ApplyConfiguration(new AdminConfiguration());
             builder.ApplyConfiguration(new AppUserConfiguration());
             builder.ApplyConfiguration(new RefreshTokenConfiguration());
+            builder.ApplyConfiguration(new DepartmentConfiguration());
         }
     }
 }

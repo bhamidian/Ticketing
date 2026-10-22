@@ -2,6 +2,9 @@ namespace Ticketing.Application.Results;
 
 public static class ApplicationErrors
 {
+    public static ApplicationError RegistrationFailed(string message) =>
+        new("auth.registration_failed", message, ApplicationErrorType.Validation);
+
     public static ApplicationError InvalidCredentials =>
         new("auth.invalid_credentials", "اطلاعات ورود یا نشست معتبر نیست.", ApplicationErrorType.Unauthorized);
 
@@ -10,6 +13,9 @@ public static class ApplicationErrors
 
     public static ApplicationError TicketNotFound(Guid ticketId) =>
         new("ticket.not_found", $"تیکت «{ticketId}» پیدا نشد.", ApplicationErrorType.NotFound);
+
+    public static ApplicationError TicketMessageNotFound(Guid ticketMessageId) =>
+        new("ticketmessage.not_found", $"پیام تیک «{ticketMessageId}» پیدا نشد",ApplicationErrorType.NotFound);
 
     public static ApplicationError TicketClosed =>
         new("ticket.closed", "امکان ارسال پیام برای تیکت بسته‌شده وجود ندارد.", ApplicationErrorType.Conflict);

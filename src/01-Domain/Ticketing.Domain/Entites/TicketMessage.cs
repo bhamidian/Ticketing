@@ -13,6 +13,7 @@ namespace Ticketing.Domain.Entites
         public Guid TicketId {get; set;}
         public AppUser Sender { get; set; } = null!;
         public Guid SenderId { get; set; }
+        public bool? IsConfirmed { get; set; }
 
     }
 }

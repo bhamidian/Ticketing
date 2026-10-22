@@ -12,4 +12,5 @@ public sealed record TicketSummaryDto(
     Guid? AssignedAgentId,
     string? AssignedAgentName,
     DateTime CreatedAtUtc,
-    DateTime UpdatedAtUtc);
+    DateTime UpdatedAtUtc,
+    string? DepartmentName);

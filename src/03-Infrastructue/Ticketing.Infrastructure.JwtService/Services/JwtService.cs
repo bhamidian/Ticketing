@@ -7,9 +7,9 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using Ticketing.Application.Contracts.Repositories;
+using Ticketing.Application.Contracts.Services;
 using Ticketing.Application.DTOs.Auth;
 using Ticketing.Domain.Entites;
-using Ticketing.Infrastructure.JwtService.Contracts;
 using Ticketing.Infrastructure.JwtService.Options;
 
 namespace Ticketing.Infrastructure.JwtService.Services;

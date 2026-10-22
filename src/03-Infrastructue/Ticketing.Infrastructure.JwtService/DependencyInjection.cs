@@ -1,7 +1,6 @@
 using System.Text;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Ticketing.Infrastructure.JwtService.Contracts;
 using Ticketing.Infrastructure.JwtService.Options;
 using Ticketing.Infrastructure.JwtService.Services;
 
@@ -32,9 +31,6 @@ public static class DependencyInjection
             .ValidateOnStart();
         services.AddScoped<global::Ticketing.Infrastructure.JwtService.Services.JwtService>();
         services.AddScoped<Ticketing.Application.Contracts.Services.IJwtService>(provider =>
-            provider.GetRequiredService<global::Ticketing.Infrastructure.JwtService.Services.JwtService>()
-        );
-        services.AddScoped<Ticketing.Infrastructure.JwtService.Contracts.IJwtService>(provider =>
             provider.GetRequiredService<global::Ticketing.Infrastructure.JwtService.Services.JwtService>()
         );
         return services;

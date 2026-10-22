@@ -42,10 +42,11 @@ public static class ApplicationMapper
         int pageSize = 12,
         bool oldestFirst = false,
         bool assignedOnly = false,
-        bool unassignedOnly = false) =>
-        new(userId, isStaff, status, priority, page, pageSize, oldestFirst, assignedOnly, unassignedOnly);
-    public static GetTicketDetailsQuery ToGetTicketDetailsQuery(Guid userId, bool isStaff, Guid ticketId) =>
-        new(userId, isStaff, ticketId);
+        bool unassignedOnly = false,
+        bool isAdmin = false) =>
+        new(userId, isStaff, status, priority, page, pageSize, oldestFirst, assignedOnly, unassignedOnly, isAdmin);
+    public static GetTicketDetailsQuery ToGetTicketDetailsQuery(Guid userId, bool isStaff, Guid ticketId, bool isAdmin = false) =>
+        new(userId, isStaff, ticketId, isAdmin);
 
     public static TicketSummaryDto ToTicketSummaryDto(Ticket ticket) => new(
         ticket.Id,
@@ -57,7 +58,8 @@ public static class ApplicationMapper
         ticket.AssignedAgentId,
         ticket.AssignedAgent?.UserName ?? ticket.AssignedAgent?.Email,
         ticket.CreatedAt,
-        ticket.UpdatedAt);
+        ticket.UpdatedAt,
+        ticket.NormalUser?.Department?.Name);
 
     public static TicketDetailsDto ToTicketDetailsDto(Ticket ticket) => new(
         ticket.Id,
@@ -75,7 +77,8 @@ public static class ApplicationMapper
         ticket.TicketMessages
             .OrderBy(message => message.CreatedAt)
             .Select(ToTicketMessageDto)
-            .ToArray());
+            .ToArray(),
+        ticket.NormalUser?.Department?.Name);
 
     public static TicketMessageDto ToTicketMessageDto(TicketMessage message) => new(
         message.Id,
@@ -85,5 +88,6 @@ public static class ApplicationMapper
         string.IsNullOrWhiteSpace(message.PictureUrl)
             ? null
             : $"/api/Ticket/{message.TicketId}/messages/{message.Id}/image",
-        message.CreatedAt);
+        message.CreatedAt,
+        message.IsConfirmed);
 }

@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.AspNetCore.Identity;
 using Ticketing.Application.Contracts.Repositories;
 using Ticketing.Application.DTOs.Tickets;
 using Ticketing.Application.Features.Tickets;
@@ -12,6 +13,7 @@ namespace Ticketing.Application.Features.Tickets.Commands.AddMessage;
 public sealed class AddTicketMessageCommandHandler(
     ITicketRepository tickets,
     ITicketMessageRepository messages,
+    UserManager<AppUser> userManager,
     INormalUserRepository normalUsers) : IRequestHandler<AddTicketMessageCommand, Result<TicketDetailsDto>>
 {
     public async Task<Result<TicketDetailsDto>> Handle(AddTicketMessageCommand request, CancellationToken cancellationToken)
@@ -35,6 +37,11 @@ public sealed class AddTicketMessageCommandHandler(
 
         var text = request.Message.Trim();
 
+        var sender = await userManager.FindByIdAsync(request.UserId.ToString());
+        if (sender is null)
+            return Result<TicketDetailsDto>.Failure(ApplicationErrors.Forbidden());
+        var isUser = await userManager.IsInRoleAsync(sender, "User");
+
         var now = DateTime.UtcNow;
         var message = new TicketMessage
         {
@@ -46,7 +53,8 @@ public sealed class AddTicketMessageCommandHandler(
             CreatedAt = now,
             UpdatedAt = now,
             CreatedById = request.UserId,
-            UpdatedById = request.UserId
+            UpdatedById = request.UserId,
+            IsConfirmed = isUser
         };
 
         ticket.UpdatedAt = now;

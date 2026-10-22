@@ -5,35 +5,39 @@ import { httpClient } from "@/shared/api/httpClient";
 import type { TicketDetails } from "../types/ticket";
 import { TicketStatus } from "../types/ticket";
 import { TicketStatusBadge } from "../components/TicketStatusBadge";
-const formatDate = (value: string) =>
-  new Intl.DateTimeFormat("fa-IR", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
+import { formatPersianDate } from "@/shared/utils/date";
 export function TicketDetailPage({
   ticket,
   userId,
   isAgent,
+  isAdmin,
   onBack,
   onReply,
   onClose,
-  onClaim,
   onChangeStatus,
+  onConfirmMessage,
+  onEditMessage,
 }: {
   ticket: TicketDetails;
   userId: string;
   isAgent: boolean;
+  isAdmin: boolean;
   onBack: () => void;
   onReply: (text: string) => Promise<void>;
   onClose: () => Promise<void>;
-  onClaim: () => Promise<void>;
   onChangeStatus: (status: TicketStatus) => Promise<void>;
+  onConfirmMessage: (messageId: string) => Promise<void>;
+  onEditMessage: (messageId: string, text: string) => Promise<void>;
 }) {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState("");
+  const [savingEditId, setSavingEditId] = useState<string | null>(null);
   const isAssignedAgent = isAgent && ticket.assignedAgentId === userId;
 
   useEffect(() => {
@@ -86,15 +90,30 @@ export function TicketDetailPage({
       setBusy(false);
     }
   }
-  async function claimTicket() {
-    setBusy(true);
+  async function confirmMessage(messageId: string) {
+    setConfirmingId(messageId);
     setError("");
     try {
-      await onClaim();
+      await onConfirmMessage(messageId);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "پذیرفتن مسئولیت تیکت ناموفق بود.");
+      setError(e instanceof Error ? e.message : "تأیید پیام انجام نشد.");
     } finally {
-      setBusy(false);
+      setConfirmingId(null);
+    }
+  }
+  async function saveMessageEdit(event: FormEvent, messageId: string) {
+    event.preventDefault();
+    if (!editDraft.trim()) return;
+    setSavingEditId(messageId);
+    setError("");
+    try {
+      await onEditMessage(messageId, editDraft.trim());
+      setEditingId(null);
+      setEditDraft("");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "ویرایش پیام انجام نشد.");
+    } finally {
+      setSavingEditId(null);
     }
   }
   return (
@@ -107,8 +126,9 @@ export function TicketDetailPage({
           <span className="ticket-id">#{ticket.id.slice(0, 8)}</span>
           <h1>{ticket.subject}</h1>
           <span className="muted">
-            ثبت‌شده در {formatDate(ticket.createdAtUtc)}
+            ثبت‌شده در {formatPersianDate(ticket.createdAtUtc, true)}
           </span>
+          {(isAgent || isAdmin) && ticket.departmentName && <span className="ticket-department detail-ticket-department">دپارتمان: {ticket.departmentName}</span>}
         </div>
         <TicketStatusBadge status={ticket.status} />
         {isAssignedAgent && (
@@ -136,12 +156,7 @@ export function TicketDetailPage({
             <p className="eyebrow">گفتگوی پشتیبانی</p>
             <h2>پیام‌ها</h2>
           </div>
-          {isAgent && !ticket.assignedAgentId && ticket.status !== TicketStatus.Closed && (
-            <Button disabled={busy} onClick={() => void claimTicket()}>
-              {busy ? "در حال پذیرش…" : "قبول مسئولیت تیکت"}
-            </Button>
-          )}
-          {!isAgent && ticket.status !== TicketStatus.Closed && (
+          {!isAgent && !isAdmin && ticket.status !== TicketStatus.Closed && (
             <Button
               variant="secondary"
               onClick={async () => {
@@ -164,7 +179,9 @@ export function TicketDetailPage({
         <div className="messages">
           {ticket.messages.map((item) => {
             const isOwnMessage = item.senderId === userId;
-            const senderLabel = isOwnMessage
+            const senderLabel = isAdmin
+              ? item.senderName
+              : isOwnMessage
               ? "شما"
               : isAgent
                 ? "کاربر"
@@ -181,9 +198,29 @@ export function TicketDetailPage({
                 <div className="message-body">
                   <div className="message-meta">
                     <strong>{senderLabel}</strong>
-                    <time>{formatDate(item.createdAtUtc)}</time>
+                    <time>{formatPersianDate(item.createdAtUtc, true)}</time>
+                    {isAdmin && item.isConfirmed === false && <span className="message-pending-badge">در انتظار تأیید</span>}
                   </div>
-                  <p>{item.message}</p>
+                  {editingId === item.id ? (
+                    <form className="message-edit-form" onSubmit={(event) => void saveMessageEdit(event, item.id)}>
+                      <textarea
+                        rows={4}
+                        maxLength={4000}
+                        value={editDraft}
+                        onChange={(event) => setEditDraft(event.target.value)}
+                        aria-label="متن ویرایش‌شده پیام"
+                        required
+                      />
+                      <div className="message-edit-actions">
+                        <button className="button button-primary" type="submit" disabled={!editDraft.trim() || savingEditId === item.id}>
+                          {savingEditId === item.id ? "در حال ذخیره…" : "ذخیره ویرایش"}
+                        </button>
+                        <button className="button button-secondary" type="button" disabled={savingEditId === item.id} onClick={() => { setEditingId(null); setEditDraft("") }}>
+                          انصراف
+                        </button>
+                      </div>
+                    </form>
+                  ) : <p>{item.message}</p>}
                   {item.pictureUrl ? (
                     imageUrls[item.id] ? (
                       <a className="message-image-link" href={imageUrls[item.id]} target="_blank" rel="noreferrer">
@@ -197,13 +234,17 @@ export function TicketDetailPage({
                   ) : (
                     null
                   )}
+                  {isAdmin && item.isConfirmed === false && <div className="pending-message-actions">
+                    {editingId !== item.id && <button className="button button-secondary message-confirm-button" type="button" disabled={confirmingId === item.id} onClick={() => { setEditingId(item.id); setEditDraft(item.message) }}>ویرایش پیام</button>}
+                    <button className="button button-primary message-confirm-button" type="button" disabled={confirmingId === item.id || savingEditId === item.id || editingId === item.id} onClick={() => void confirmMessage(item.id)}>{confirmingId === item.id ? "در حال تأیید…" : "تأیید و ارسال به کاربر"}</button>
+                  </div>}
                 </div>
               </article>
             );
           })}
         </div>
         {error && <p className="alert-error">{error}</p>}
-        {ticket.status !== TicketStatus.Closed && (!isAgent || isAssignedAgent) ? (
+        {!isAdmin && ticket.status !== TicketStatus.Closed && (!isAgent || isAssignedAgent) ? (
           <form className="composer" onSubmit={submit}>
             <textarea
               rows={3}
@@ -220,10 +261,12 @@ export function TicketDetailPage({
                   : "ارسال پیام"}
             </Button>
           </form>
+        ) : isAdmin ? (
+          <p className="closed-note">ادمین فقط پیام‌های نیازمند تأیید را مدیریت می‌کند.</p>
         ) : ticket.status === TicketStatus.Closed ? (
           <p className="closed-note">این تیکت بسته شده است.</p>
         ) : (
-          <p className="closed-note">برای پاسخ‌دادن، ابتدا مسئولیت این تیکت را بپذیرید.</p>
+          <p className="closed-note">فقط برای تیکت‌های واگذارشده به شما امکان پاسخ وجود دارد.</p>
         )}
       </div>
     </section>

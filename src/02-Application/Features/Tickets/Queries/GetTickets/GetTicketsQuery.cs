@@ -14,4 +14,5 @@ public sealed record GetTicketsQuery(
     int PageSize = 12,
     bool OldestFirst = false,
     bool AssignedOnly = false,
-    bool UnassignedOnly = false) : IRequest<Result<PagedTicketsDto>>;
+    bool UnassignedOnly = false,
+    bool IsAdmin = false) : IRequest<Result<PagedTicketsDto>>;
