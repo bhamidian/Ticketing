@@ -1,12 +1,12 @@
 # Ticketing
 
-A support ticketing application with an ASP.NET Core Web API and a React client. Customers can create tickets, exchange messages, and optionally attach images. Support agents can browse unassigned tickets, claim tickets, and manage tickets assigned to them.
+A support ticketing application with an ASP.NET Core Web API and a React client. Customers create tickets and exchange messages with support. Agents work only on tickets assigned to them. Administrators assign tickets and review agent replies before they are sent to customers.
 
 ## Technology stack
 
 - .NET 10 and ASP.NET Core Web API
 - Entity Framework Core 10 with SQL Server
-- ASP.NET Core Identity and JWT access tokens with refresh-token cookies
+- ASP.NET Core Identity, JWT access tokens, and refresh-token cookies
 - React 19, TypeScript, and Vite 8
 - Serilog console and Seq sinks
 
@@ -37,26 +37,33 @@ dotnet tool install --global dotnet-ef
 
 ## Configuration
 
-The API reads its database connection from `ConnectionStrings:DefaultConnection` and JWT settings from the `Jwt` section (`Issuer`, `Audience`, and `SigningKey`). Configure these values through user secrets or environment variables. For a PowerShell development session, for example:
+The API reads `ConnectionStrings:DefaultConnection` and the `Jwt` settings (`Issuer`, `Audience`, and `SigningKey`) from ASP.NET Core configuration. The development connection string is intentionally kept out of `appsettings.Development.json`; use .NET User Secrets for local values:
 
 ```powershell
-$env:ConnectionStrings__DefaultConnection = "Server=localhost;Database=Ticketing;Trusted_Connection=True;TrustServerCertificate=True;"
-$env:Jwt__Issuer = "Ticketing"
-$env:Jwt__Audience = "TicketingClient"
-$env:Jwt__SigningKey = "replace-with-a-long-random-development-key"
+$apiProject = "src/04-Endpoint/Ticketing.Endpoint.Webapi/Ticketing.Endpoint.Webapi.csproj"
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost;Database=Ticketing;User Id=sa;Password=<local-password>;TrustServerCertificate=True;" --project $apiProject
+dotnet user-secrets set "Jwt:Issuer" "Ticketing.Api" --project $apiProject
+dotnet user-secrets set "Jwt:Audience" "Ticketing.Client" --project $apiProject
+dotnet user-secrets set "Jwt:SigningKey" "<a-long-random-development-key>" --project $apiProject
 ```
 
-Use a private, sufficiently long signing key and never commit real credentials. Development account seeding is optional; it runs only in the Development environment when `SeedUsers:Enabled` is set to `true` and a database connection is configured.
+User Secrets are loaded automatically when the API runs in the Development environment. Environment variables can also be used; for example, `ConnectionStrings__DefaultConnection` overrides the connection string. Never commit real credentials.
+
+### Development seed accounts
+
+When `SeedUsers:Enabled` is `true` in Development, startup creates the configured development accounts. The seeder currently expects three accounts for each role: `User`, `Agent`, and `Admin`. Configure their emails and development-only passwords under `SeedUsers:Accounts` in `appsettings.Development.json` or through another configuration provider. The seeded normal users belong to the `پشتیبانی` department; newly registered normal users are assigned to that department as well.
 
 ## Database setup
 
-From the repository root, apply the existing EF Core migrations:
+From the repository root, apply the EF Core migrations:
 
 ```powershell
 dotnet ef database update `
   --project src/03-Infrastructue/Ticketing.Infrastructure.Efcore `
   --startup-project src/04-Endpoint/Ticketing.Endpoint.Webapi
 ```
+
+The database needs to be migrated before the development seeder or registration flow runs. The migration creates the admin and department tables, assigns departments to existing normal users, and adds the agent-message approval state.
 
 ## Run the API
 
@@ -80,26 +87,37 @@ npm run dev
 
 The Vite development server proxies `/api` requests to the local HTTPS API at `https://localhost:7180`. Set `VITE_API_BASE_URL` in `.env.local` only when the client needs to call a different API origin directly.
 
+## Roles and ticket workflow
+
+- **User:** belongs to one department, can create tickets, and sees only their own tickets. Replies from agents are visible after an administrator approves them.
+- **Agent:** sees and replies only to tickets assigned to that agent. New agent replies stay pending until an administrator reviews them.
+- **Admin:** sees the ticket queue, assigns tickets to agents, views agent response counts, and can edit or approve pending agent replies. Approval sends the reply to the customer.
+- A department can have multiple normal users. The ticket list and details show the requester's department to agents and administrators.
+
 ## Main API routes
 
 All routes are under `/api`.
 
 | Route | Purpose |
 | --- | --- |
-| `POST /Auth/register` | Register a customer account |
-| `POST /Auth/login` | Sign in and receive tokens |
-| `POST /Auth/refresh` | Refresh the access token using the refresh-token cookie |
-| `POST /Auth/logout` | Revoke the refresh token and clear the cookie |
-| `GET /Ticket` | List tickets with pagination, status/priority filters, sort order, and agent assignment filters |
-| `POST /Ticket` | Create a ticket; an optional image can be uploaded as multipart form data |
-| `GET /Ticket/{ticketId}` | View ticket details and messages |
-| `POST /Ticket/{ticketId}/claim` | Claim an available ticket as an agent |
-| `POST /Ticket/{ticketId}/messages` | Add a message to a ticket |
+| `POST /Auth/register` | Register a normal user account |
+| `POST /Auth/login` | Sign in and receive an access token and refresh-token cookie |
+| `POST /Auth/refresh` | Rotate the refresh token and issue a new access token |
+| `POST /Auth/logout` | Revoke the refresh-token family and clear the cookie |
+| `GET /Profile/me` | Get the signed-in user's profile and department |
+| `GET /Ticket` | List tickets with pagination, status/priority filters, and sorting |
+| `POST /Ticket` | Create a ticket with an optional image attachment |
+| `GET /Ticket/{ticketId}` | View an authorized ticket and its visible messages |
+| `POST /Ticket/{ticketId}/messages` | Add a message; agent replies require admin approval |
 | `POST /Ticket/{ticketId}/close` | Close a ticket |
-| `PATCH /Ticket/{ticketId}/status` | Change a ticket's status |
-| `GET /Ticket/{ticketId}/messages/{messageId}/image` | Retrieve an attached ticket image |
+| `PATCH /Ticket/{ticketId}/status` | Change the status of an assigned ticket |
+| `GET /Ticket/{ticketId}/messages/{messageId}/image` | Retrieve an authorized ticket image |
+| `GET /Admin/agents` | List agents and their responded-ticket counts |
+| `POST /Admin/tickets/{ticketId}/assign` | Assign or reassign a ticket to an agent |
+| `PATCH /Admin/tickets/{ticketId}/messages/{messageId}` | Edit a pending agent reply |
+| `PATCH /Admin/messages/{messageId}/confirm` | Approve and publish a pending agent reply |
 
-Ticket routes require authentication. Authorization and visibility depend on the caller's role and ticket assignment.
+Ticket routes require authentication. Admin routes require the `Admin` role. Ticket and message visibility is also enforced by the API according to the caller's role and assignment.
 
 ## File uploads
 
